@@ -1,3 +1,5 @@
+#![feature(slice_group_by)]
+
 pub mod vector;
 pub mod direction;
 pub mod grid;

@@ -17,7 +17,7 @@ if not exists(example_path):
     print('created: ' + example_path)
     file = open(example_path, 'x')
     rust = '''pub fn main() {
-    let input_text: &str = include_str!("../input/day_{day}.txt");
+    let input_text = include_str!("../input/day_{day}.txt");
 
     // println!("Exercise 1: {}", exercise_1(&numbers));
     // println!("Exercise 2: {}", exercise_2(&numbers));
@@ -37,6 +37,7 @@ if not exists(input_path):
     print('created:' + input_path)
     file = open(input_path, 'x')
     cookies = {'session': os.environ["COOKIE"]}
-    response = requests.get(url = url, cookies=cookies)
+    headers = {'User-Agent': 'https://github.com/BlockCat/advent_of_code_2022 by BlockCat'}
+    response = requests.get(url = url, cookies=cookies, headers=headers)
     file.write(response.text)
     file.close()
