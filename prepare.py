@@ -1,5 +1,6 @@
 import requests
 import os
+import sys
 from dotenv import load_dotenv
 from os.path import exists
 
@@ -7,17 +8,23 @@ load_dotenv()
 
 print('Enter day:')
 year = 2022
-day = input()
+
+if len(sys.argv) > 1:
+    day = sys.argv[1]
+else:
+    day = input()
+
 url = "https://adventofcode.com/{year}/day/{day}/input".format(year = year, day = day)
 
 example_path = 'examples/day_{}.rs'.format(day.zfill(2))
 input_path = 'input/day_{}.txt'.format(day.zfill(2))
 
+
 if not exists(example_path):
     print('created: ' + example_path)
     file = open(example_path, 'x')
     rust = '''pub fn main() {
-    let input_text = include_str!("../input/day_{day}.txt");
+    let input_text = include_str!("../input/day_{day}.txt").lines().map(|line| line.split(' '));
 
     // println!("Exercise 1: {}", exercise_1(&numbers));
     // println!("Exercise 2: {}", exercise_2(&numbers));
