@@ -17,3 +17,10 @@ test d3_silver ... bench:         455 ns/iter (+/- 8)
 test d3_gold ... bench:         337 ns/iter (+/- 5)
 test d3_input ... bench:      25,770 ns/iter (+/- 583)
 ```
+
+day4
+```
+test d4_e1 ... bench:         780 ns/iter (+/- 140)
+test d4_e2 ... bench:         764 ns/iter (+/- 78)
+test d4_in ... bench:      70,590 ns/iter (+/- 6,556)
+```

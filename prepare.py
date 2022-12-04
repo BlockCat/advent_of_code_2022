@@ -23,17 +23,27 @@ input_path = 'input/day_{}.txt'.format(day.zfill(2))
 if not exists(example_path):
     print('created: ' + example_path)
     file = open(example_path, 'x')
-    rust = '''pub fn main() {
-    let input_text = include_str!("../input/day_{day}.txt").lines().map(|line| line.split(' '));
+    rust = '''type InputType = Vec<u32>;
 
-    // println!("Exercise 1: {}", exercise_1(&numbers));
-    // println!("Exercise 2: {}", exercise_2(&numbers));
+pub fn main() {
+    let numbers = input()
+
+    // println!("Exercise 1: {}", exercise_1(numbers.clone()));
+    // println!("Exercise 2: {}", exercise_2(numbers));
 }
 
-fn exercise_1(input: usize) -> usize {
+fn input() -> InputType {
+    include_str!("../input/day_{day}.txt").lines().map(parse_line)
+}
+
+fn parse_line(line: &str) -> usize {
+
+}
+
+fn exercise_1(input: InputType) -> usize {
     unimplemented!()
 }
-fn exercise_2(input: usize) -> usize {
+fn exercise_2(input: InputType) -> usize {
     unimplemented!()    
 }'''.replace('{day}', day.zfill(2))
     file.write(rust)
