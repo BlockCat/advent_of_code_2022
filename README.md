@@ -24,3 +24,24 @@ test d4_e1 ... bench:         780 ns/iter (+/- 140)
 test d4_e2 ... bench:         764 ns/iter (+/- 78)
 test d4_in ... bench:      70,590 ns/iter (+/- 6,556)
 ```
+
+day5
+```
+test d5_e1 ... bench:      46,533 ns/iter (+/- 4,487)
+test d5_e2 ... bench:      45,342 ns/iter (+/- 294)
+test d5_in ... bench:      43,797 ns/iter (+/- 962)
+```
+
+day6
+```
+test d6_e1 ... bench:      46,889 ns/iter (+/- 2,999)
+test d6_e2 ... bench:      54,986 ns/iter (+/- 2,427)
+test d6_in ... bench:       3,699 ns/iter (+/- 420)
+```
+
+day7
+```
+test d6_e1 ... bench:      37,505 ns/iter (+/- 822)
+test d6_e2 ... bench:      36,282 ns/iter (+/- 10,787)
+test d6_in ... bench:     103,220 ns/iter (+/- 15,387)
+```  

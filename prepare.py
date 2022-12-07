@@ -26,7 +26,7 @@ if not exists(example_path):
     rust = '''type InputType = Vec<u32>;
 
 pub fn main() {
-    let numbers = input()
+    let numbers = input();
 
     // println!("Exercise 1: {}", exercise_1(numbers.clone()));
     // println!("Exercise 2: {}", exercise_2(numbers));

@@ -1,4 +1,7 @@
 #![feature(iter_next_chunk)]
+
+use rayon::prelude::*;
+
 pub fn main() {
     let numbers = input();
 
@@ -26,13 +29,13 @@ fn parse_line(line: &str) -> [[i16; 2]; 2] {
 }
 fn exercise_1(input: &Vec<[[i16; 2]; 2]>) -> usize {
     input
-        .iter()
+        .par_iter()
         .filter(|[a, b]| (a[0] - b[0]) * (a[1] - b[1]) <= 0) //(a[0] >= b[0] && a[1] <= b[1]) || (b[0] >= a[0] && b[1] <= a[1]))
         .count()
 }
 fn exercise_2(input: &Vec<[[i16; 2]; 2]>) -> usize {
     input
-        .iter()
+        .par_iter()
         .filter(|[a, b]| !(a[1] < b[0] || a[0] > b[1]))
         .count()
 }
