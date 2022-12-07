@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use rayon::prelude::*;
 
 type InputType = Vec<u32>;
@@ -12,16 +10,16 @@ pub fn main() {
 }
 
 fn input() -> InputType {
-    include_str!("../input/day_06.txt")
+    include_str!("../input/bigboy.txt")
         .chars()
-        .map(|c| ((c as u8) - b'a') as u32)
+        .map(|c| (1 << (c as u8) - b'a'))
         .collect()
 }
 
 fn exercise_1<const N: u32>(input: InputType) -> usize {
     let a = input
-        .par_windows(N as usize)
-        .position_first(|x| x.iter().fold(0u32, |acc, x| acc | (1 << x)).count_ones() == N)
+        .par_windows(N as usize)        
+        .position_first(|x| x.iter().fold(0u32, |acc, x| acc | x).count_ones() == N)
         .unwrap();
     a + N as usize
 }
