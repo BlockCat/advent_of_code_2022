@@ -10,7 +10,7 @@ pub fn main() {
 }
 
 fn input() -> InputType {
-    include_str!("../input/bigboy.txt")
+    include_str!("../input/day_06.txt")
         .chars()
         .map(|c| (1 << (c as u8) - b'a'))
         .collect()

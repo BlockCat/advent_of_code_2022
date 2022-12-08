@@ -38,10 +38,15 @@ test d6_e1 ... bench:      46,889 ns/iter (+/- 2,999)
 test d6_e2 ... bench:      54,986 ns/iter (+/- 2,427)
 test d6_in ... bench:       3,699 ns/iter (+/- 420)
 ```
-
+day6big
+```
+test d6_e1 ... bench: 169,470,720 ns/iter (+/- 26,724,057)
+test d6_e2 ... bench: 193,725,870 ns/iter (+/- 31,279,423)
+test d6_in ... bench: 205,828,800 ns/iter (+/- 7,267,135)
+```
 day7
 ```
-test d6_e1 ... bench:      37,505 ns/iter (+/- 822)
-test d6_e2 ... bench:      36,282 ns/iter (+/- 10,787)
-test d6_in ... bench:     103,220 ns/iter (+/- 15,387)
+test d7_e1 ... bench:      37,505 ns/iter (+/- 822)
+test d7_e2 ... bench:      36,282 ns/iter (+/- 10,787)
+test d7_in ... bench:     103,220 ns/iter (+/- 15,387)
 ```  

@@ -6,6 +6,13 @@ pub enum Direction {
     West,
 }
 
+pub const ALL_DIRECTIONS: [Direction; 4] = [
+    Direction::North,
+    Direction::East,
+    Direction::South,
+    Direction::West
+];
+
 macro_rules! from_number {
     ($te:ident) => {
         impl From<$te> for Direction {

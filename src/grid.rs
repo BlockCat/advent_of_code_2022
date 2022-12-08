@@ -100,6 +100,9 @@ where
     }
 
     fn get(&self, x: isize, y: isize) -> Option<&T> {
+        if x < 0 || y < 0 {
+            return None;
+        }
         if x < self.width as isize && y < self.height as isize {
             self.grid.get((x + y * self.width as isize) as usize)
         } else {
