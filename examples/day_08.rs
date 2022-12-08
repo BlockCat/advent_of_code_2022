@@ -1,10 +1,8 @@
 use aoc_2022::{
-    direction::{Direction, ALL_DIRECTIONS},
     grid::{Grid, StaticGrid},
     vector::Vector2,
 };
-use rayon::prelude::{ParallelBridge, ParallelIterator};
-use std::collections::HashSet;
+use std::{collections::HashSet, thread};
 
 type IT = StaticGrid<u8>;
 
@@ -49,31 +47,78 @@ fn exercise_1(input: IT) -> usize {
     visible.len()
 }
 fn exercise_2(input: IT) -> usize {
-    (1..(input.width - 1))
-        .flat_map(|x| (1..(input.height - 1)).map(move |y| Vector2::new([x as isize, y as isize])))
-        .par_bridge()
-        .map(|cord| {
-            ALL_DIRECTIONS
-                .into_iter()
-                .map(|x| check_dir(cord, x, &input))
-                .product::<usize>()
-        })
+    let prep = thread::scope(|s| {
+        [
+            s.spawn(|| prep_left(&input)),
+            s.spawn(|| prep_right(&input)),
+            s.spawn(|| prep_up(&input)),
+            s.spawn(|| prep_down(&input)),
+        ]
+        .map(|x| x.join().unwrap())
+    });
+
+    (0..input.grid.len())
+        .map(|x| prep[0].grid[x] * prep[1].grid[x] * prep[2].grid[x] * prep[3].grid[x])
         .max()
         .unwrap()
 }
 
-fn check_dir(sloc: Vector2, dir: Direction, input: &IT) -> usize {
-    let height = *input.get_vec(&sloc).unwrap();
-    let mut count = 0;
-    let mut loc = sloc + dir;
+fn prep_left(input: &IT) -> StaticGrid<usize> {
+    let mut grid = StaticGrid::new(input.width, input.height);
 
-    while let Some(x) = input.get_vec(&loc) {
-        count += 1;
-        if *x < height {
-            loc = loc + dir;
-        } else {
-            return count;
+    for y in 0..input.height as isize {
+        let mut cat = [0u32; 10];
+        for x in 0..input.width as isize {
+            let val = *input.get(x, y).unwrap();
+            let seen = *cat[val as usize..].iter().max().unwrap();
+            grid.set(x, y, x as usize - seen as usize);
+            cat[val as usize] = x as u32;
         }
     }
-    count
+    grid
+}
+
+fn prep_right(input: &IT) -> StaticGrid<usize> {
+    let mut grid = StaticGrid::new(input.width, input.height);
+
+    for y in 0..input.height as isize {
+        let mut cat = [input.width as u32 - 1; 10];
+        for x in (0..input.width as isize).rev() {
+            let val = *input.get(x, y).unwrap();
+            let seen = *(cat[val as usize..].iter().min().unwrap());
+            grid.set(x, y, seen as usize - x as usize);
+            cat[val as usize] = x as u32;
+        }
+    }
+    grid
+}
+
+fn prep_up(input: &IT) -> StaticGrid<usize> {
+    let mut grid = StaticGrid::new(input.width, input.height);
+
+    for x in 0..input.width as isize {
+        let mut cat = [0u32; 10];
+        for y in 0..input.height as isize {
+            let val = *input.get(x, y).unwrap();
+            let seen = *cat[val as usize..].iter().max().unwrap();
+            grid.set(x, y, (y as usize) - (seen as usize));
+            cat[val as usize] = y as u32;
+        }
+    }
+    grid
+}
+
+fn prep_down(input: &IT) -> StaticGrid<usize> {
+    let mut grid = StaticGrid::new(input.width, input.height);
+
+    for x in (0..input.width as isize).rev() {
+        let mut cat = [input.height as u32 - 1; 10];
+        for y in (0..input.height as isize).rev() {
+            let val = *input.get(x, y).unwrap();
+            let seen = *(cat[val as usize..].iter().min().unwrap());
+            grid.set(x, y, seen as usize - y as usize);
+            cat[val as usize] = y as u32;
+        }
+    }
+    grid
 }

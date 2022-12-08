@@ -50,3 +50,17 @@ test d7_e1 ... bench:      37,505 ns/iter (+/- 822)
 test d7_e2 ... bench:      36,282 ns/iter (+/- 10,787)
 test d7_in ... bench:     103,220 ns/iter (+/- 15,387)
 ```  
+
+day8
+```
+test d8_e1 ... bench:     196,006 ns/iter (+/- 41,602)
+test d8_e2 ... bench:     355,852 ns/iter (+/- 21,169)
+test d8_in ... bench:      63,425 ns/iter (+/- 3,506)
+```
+
+day8big
+```
+input: 539ms
+ex1: 1s
+ex2: 4.7s
+```

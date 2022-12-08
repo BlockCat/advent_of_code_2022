@@ -83,6 +83,9 @@ where
     pub height: usize,
 }
 
+unsafe impl Send for StaticGrid<usize> {} 
+unsafe impl Sync for StaticGrid<usize> {}
+
 impl<T> Grid<T> for StaticGrid<T>
 where
     T: Clone + PartialEq + Eq + Default,
