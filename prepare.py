@@ -56,5 +56,6 @@ if not exists(input_path):
     cookies = {'session': os.environ["COOKIE"]}
     headers = {'User-Agent': 'https://github.com/BlockCat/advent_of_code_2022 by BlockCat'}
     response = requests.get(url = url, cookies=cookies, headers=headers)
+
     file.write(response.text)
     file.close()

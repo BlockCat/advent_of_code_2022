@@ -32,6 +32,7 @@ impl<T> DynamicGrid<T>
 where
     T: Clone + PartialEq + Eq + Default,
 {
+    
     pub fn from_vec(vec: Vec<Vec<T>>) -> Self {
         let mut grid = Self::default();
 
