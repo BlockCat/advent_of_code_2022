@@ -1,4 +1,5 @@
 // #![feature(test)]
+// #![feature(portable_simd)]
 // include!("../examples/day_11.rs");
 
 // extern crate test;
