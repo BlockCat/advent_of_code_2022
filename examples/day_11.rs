@@ -1,5 +1,8 @@
 #![feature(portable_simd)]
-use std::{collections::HashMap, simd::Simd};
+use std::{
+    collections::{HashMap, HashSet},
+    simd::Simd,
+};
 
 type InputType = Vec<Monkey>;
 
@@ -20,9 +23,11 @@ fn input() -> InputType {
             .split(", ")
             .map(|x| x.parse().unwrap())
             .collect();
-        let operation = lines.next().unwrap();
 
+        let operation = lines.next().unwrap();
         let divisible: usize = lines.next().unwrap()[21..].parse().unwrap();
+
+        assert!(divisible > 0);
 
         let true_monkey = lines.next().unwrap()[29..].parse().unwrap();
         let false_monkey = lines.next().unwrap()[30..].parse().unwrap();
@@ -52,14 +57,13 @@ fn input() -> InputType {
     monkeys
 }
 
-fn exercise_1(mut input: InputType) -> usize {
-    // input.iter_mut().for_each(|x| x.start_items.reserve(30));
-    let mut inspections = (0..20).fold([0; 8], |mut acc, _| {
+fn exercise_1(mut input: InputType) -> usize {    
+    let mut inspections = (0..20).fold(vec![0; input.len()], |mut acc, _| {
         for monkey in 0..input.len() {
             while let Some(worry) = &input[monkey].start_items.pop() {
-                acc[monkey] += 1;
                 let (next_worry, next_monkey) = inspect(*worry, &input[monkey]);
                 input[next_monkey].start_items.push(next_worry as usize);
+                acc[monkey] += 1;
             }
         }
         acc
@@ -70,17 +74,17 @@ fn exercise_1(mut input: InputType) -> usize {
 }
 
 fn exercise_2(mut input: InputType) -> usize {
-    let lessen = input.iter().map(|x| x.divisible).product::<usize>();
-    // input.iter_mut().for_each(|x| x.start_items.reserve(30));
+    let lessened = input.iter().map(|x| x.divisible).collect::<HashSet<_>>();
+    let lessen = lessened.into_iter().product::<usize>();
 
-    let mut inspections = [0; 8];
+    let mut inspections = vec![0; input.len()];
     let mut visited = HashMap::with_capacity(1_000);
 
     let mut counter = 0;
     const MAX: usize = 10_000;
 
     while counter < MAX {
-        monkey_round(&mut input, &mut inspections, lessen);
+        monkey_round(&mut input, &mut inspections, lessen as usize);
         counter += 1;
 
         let hash = input
@@ -93,14 +97,13 @@ fn exercise_2(mut input: InputType) -> usize {
         if let Some((a, old_reps)) = grep {
             let cycle_length = counter - a;
             let repetitions = (MAX - counter) / cycle_length;
-            let i = Simd::from_array(inspections);
-            let old = Simd::from_array(old_reps);
-            let diff = i - old;
-            let diff = diff * Simd::splat(repetitions);
-            let ne: Simd<usize, 8> = i + diff;
 
-            inspections = ne.to_array();
+            inspections
+                .iter_mut()
+                .zip(old_reps.iter())
+                .for_each(|(rep, old)| *rep += (*rep - *old) * repetitions);
 
+            println!("cycle detected: {} -> {}, [{}]", a, counter, cycle_length);
             counter += repetitions * cycle_length;
 
             break;
@@ -109,14 +112,14 @@ fn exercise_2(mut input: InputType) -> usize {
 
     while counter < MAX {
         counter += 1;
-        monkey_round(&mut input, &mut inspections, lessen);
+        monkey_round(&mut input, &mut inspections, lessen as usize);
     }
 
     inspections.sort();
     inspections.into_iter().rev().take(2).product()
 }
 
-fn monkey_round(input: &mut InputType, inspections: &mut [usize; 8], lessen: usize) {
+fn monkey_round(input: &mut InputType, inspections: &mut [usize], lessen: usize) {
     for monkey in 0..input.len() {
         while let Some(worry) = &input[monkey].start_items.pop() {
             inspections[monkey] += 1;
