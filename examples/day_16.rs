@@ -1,8 +1,7 @@
-#![feature(is_sorted)]
-
 use std::collections::{HashMap, HashSet};
 
 type InputType = Vec<(String, usize, Vec<String>)>;
+type Valve = u8;
 
 pub fn main() {
     let numbers = input();
@@ -12,7 +11,7 @@ pub fn main() {
 }
 
 fn input() -> InputType {
-    include_str!("../input/test.txt")
+    include_str!("../input/day_16.txt")
         .lines()
         .map(parse_line)
         .collect()
@@ -107,44 +106,69 @@ fn exercise_2(input: InputType) -> usize {
 
     // F(valve, time) = max(valve * (time - 1) + max([F(n, time - 2) | n in neighbours of valve]), max([F(n, time - 1) | n in neighbours of valve]) )
 
-    let mut map = HashMap::new();
+    let translator = valves
+        .clone()
+        .into_iter()
+        .enumerate()
+        .map(|(i, a)| (a.clone().0, i as Valve))
+        .collect::<HashMap<_, _>>();
+
+    let start = translator[&"AA".to_string()];
+
+    let valves = valves
+        .into_iter()
+        .map(|(v, (flow, ne))| {
+            (
+                translator[&v],
+                (
+                    flow,
+                    ne.into_iter().map(|n| translator[&n]).collect::<Vec<_>>(),
+                ),
+            )
+        })
+        .collect();
+
+
 
     step2(
         &valves,
-        &mut map,
-        &Vec::with_capacity(6),
-        String::from("AA"),
-        String::from("AA"),
+        &mut Default::default(),
+        &Vec::new(),
+        start,
+        start,
         26,
     )
 }
 
 fn step2(
-    valves: &HashMap<String, (usize, Vec<String>)>,
-    visited: &mut HashMap<(String, String, usize, Vec<String>), usize>,
-    openened: &Vec<String>,
-    valve_a: String,
-    valve_b: String,
+    valves: &HashMap<Valve, (usize, Vec<Valve>)>,
+    visited: &mut HashMap<(Valve, Valve, usize, Vec<Valve>), usize>,
+    openened: &Vec<Valve>,
+    valve_a: Valve,
+    valve_b: Valve,
     time: usize,
 ) -> usize {
-    let (flow_a, neighbours_a) = valves.get(&valve_a).unwrap();
-    let (flow_b, neighbours_b) = valves.get(&valve_b).unwrap();
-
-    let (valve_a, valve_b) = { (valve_a.clone().min(valve_b.clone()), valve_a.max(valve_b)) };
-
-    // assert!(valve_a <= valve_b);
+    let (valve_a, valve_b) = { (valve_a.min(valve_b), valve_a.max(valve_b)) };
 
     if time == 0 {
         return 0;
     }
 
-    if let Some(val) = visited.get(&(valve_a.clone(), valve_b.clone(), time, openened.clone())) {
+    if let Some(val) = visited.get(&(valve_a, valve_b, time, openened.clone())) {
         return *val;
     }
 
+    let (can_a_turn, neighbours_a) = {
+        let x = valves.get(&valve_a).unwrap();
+        (x.0 > 0 && !openened.contains(&valve_a), x.1.iter())
+    };
+    let (can_b_turn, neighbours_b) = {
+        let x = valves.get(&valve_b).unwrap();
+        (x.0 > 0 && !openened.contains(&valve_b), x.1.clone())
+    };
+
     // Go to neighbours or stand still for both
     let max_neighbours = neighbours_a
-        .iter()
         .cloned()
         .chain([valve_a.clone()])
         .flat_map(|valve_a| {
@@ -154,61 +178,57 @@ fn step2(
                 .chain([valve_b.clone()])
                 .map(move |valve_b| (valve_a.clone(), valve_b))
         })
-        .map(|(valve_me, valve_ele)| {
-            step2(valves, visited, openened, valve_ele, valve_me, time - 1)
-        })
+        .map(|(a, b)| (a.min(b), a.max(b)))
+        .collect::<HashSet<_>>();
+
+    let max_neighbours = max_neighbours
+        .into_iter()
+        .map(|(valve_a, valve_b)| step2(valves, visited, openened, valve_a, valve_b, time - 1))
         .max()
         .unwrap();
 
-    let can_a_turn = *flow_a > 0 && !openened.contains(&valve_a);
-    let can_b_turn = *flow_b > 0 && !openened.contains(&valve_b);
-
     let val = match (can_a_turn, can_b_turn) {
         (true, true) => {
-            let turn_a = one_turn(openened, &valve_a, &valve_b, time, valves, visited);
-            let turn_b = one_turn(openened, &valve_b, &valve_a, time, valves, visited);
+            let turned_a = turn_a(openened, valve_a, valve_b, time, valves, visited);
+            let turned_b = turn_a(openened, valve_b, valve_a, time, valves, visited);
 
             if valve_a == valve_b {
-                turn_a.max(turn_b).max(max_neighbours)
+                turned_a.max(turned_b).max(max_neighbours)
             } else {
-                let both = both_turn(
-                    openened, &valve_a, &valve_b, *flow_a, *flow_a, time, valves, visited,
-                );
-                both.max(turn_a).max(turn_b).max(max_neighbours)
+                let both = both_turn(openened, valve_a, valve_b, time, valves, visited);
+                both.max(turned_a).max(turned_b).max(max_neighbours)
             }
         }
         (true, false) => {
-            one_turn(openened, &valve_a, &valve_b, time, valves, visited).max(max_neighbours)
+            turn_a(openened, valve_a, valve_b, time, valves, visited).max(max_neighbours)
         }
         (false, true) => {
-            one_turn(openened, &valve_b, &valve_a, time, valves, visited).max(max_neighbours)
+            turn_a(openened, valve_b, valve_a, time, valves, visited).max(max_neighbours)
         }
         (false, false) => max_neighbours,
     };
 
-    visited.insert(
-        (valve_a.clone(), valve_b.clone(), time, openened.clone()),
-        val,
-    );
-    visited.insert((valve_b, valve_a, time, openened.clone()), val);
+    visited.insert((valve_a, valve_b, time, openened.clone()), val);
 
     val
 }
 
 fn both_turn(
-    openened: &Vec<String>,
-    valve_a: &String,
-    valve_b: &String,
-    flow_a: usize,
-    flow_b: usize,
+    openened: &Vec<Valve>,
+    valve_a: Valve,
+    valve_b: Valve,
     time: usize,
-    valves: &HashMap<String, (usize, Vec<String>)>,
-    visited: &mut HashMap<(String, String, usize, Vec<String>), usize>,
+    valves: &HashMap<Valve, (usize, Vec<Valve>)>,
+    visited: &mut HashMap<(Valve, Valve, usize, Vec<Valve>), usize>,
 ) -> usize {
     let mut openened = openened.clone();
     openened.push(valve_a.clone());
     openened.push(valve_b.clone());
     openened.sort();
+
+    let flow_a = valves[&valve_a].0;
+    let flow_b = valves[&valve_b].0;
+
     let add_a = flow_a * (time - 1);
     let add_b = flow_b * (time - 1);
     let turn_value = add_a
@@ -224,57 +244,58 @@ fn both_turn(
     turn_value
 }
 
-fn one_turn(
-    openened: &Vec<String>,
-    valve_turn: &String,
-    valve_move: &String,
+fn turn_a(
+    openened: &Vec<Valve>,
+    valve_a: Valve,
+    valve_b: Valve,
     time: usize,
-    valves: &HashMap<String, (usize, Vec<String>)>,
-    visited: &mut HashMap<(String, String, usize, Vec<String>), usize>,
+    valves: &HashMap<Valve, (usize, Vec<Valve>)>,
+    visited: &mut HashMap<(Valve, Valve, usize, Vec<Valve>), usize>,
 ) -> usize {
     let mut openened = openened.clone();
-    openened.push(valve_turn.clone());
+    openened.push(valve_a);
+    openened.sort();
 
-    let turn_flow = valves[valve_turn].0;
-    let neighbours = &valves[valve_move].1;
-
+    let turn_flow = valves[&valve_a].0;
     let added = turn_flow * (time - 1);
 
-    let ele = neighbours
+    let ele = valves[&valve_b]
+        .1
         .iter()
         .cloned()
-        .chain([valve_move.clone()])
-        .map(|x| step2(valves, visited, &openened, valve_turn.clone(), x, time - 1))
+        .chain([valve_b])
+        .map(|x| step2(valves, visited, &openened, valve_a.clone(), x, time - 1))
         .max()
         .unwrap();
 
     added + ele
 }
 
-fn ele_turn(
-    openened: &Vec<String>,
-    valve_me: &String,
-    valve_ele: &String,
-    flow_ele: &usize,
-    time: usize,
-    flow_me: &usize,
-    valves: &HashMap<String, (usize, Vec<String>)>,
-    visited: &mut HashMap<(String, String, usize, Vec<String>), usize>,
-) -> usize {
-    let mut openened = openened.clone();
-    openened.push(valve_ele.clone());
+// fn turn_b(
+//     openened: &Vec<Valve>,
+//     valve_a: Valve,
+//     valve_b: Valve,
+//     time: usize,
+//     valves: &HashMap<Valve, (usize, Vec<Valve>)>,
+//     visited: &mut HashMap<(Valve, Valve, usize, Vec<Valve>), usize>,
+// ) -> usize {
+//     let mut openened = openened.clone();
 
-    let ele_add = *flow_ele * (time - 1);
+//     openened.push(valve_b.clone());
+//     openened.sort();
 
-    let me = &valves[valve_me].1;
+//     let turn_flow = valves[&valve_b].0;
+//     let added = turn_flow * (time - 1);
 
-    let me = me
-        .iter()
-        .cloned()
-        .chain([valve_me.clone()])
-        .map(|x| step2(valves, visited, &openened, x, valve_ele.clone(), time - 1))
-        .max()
-        .unwrap();
+//     let me = &valves[&valve_a].1;
 
-    ele_add + me
-}
+//     let me = me
+//         .iter()
+//         .cloned()
+//         .chain([valve_a.clone()])
+//         .map(|x| step2(valves, visited, &openened, x, valve_b.clone(), time - 1))
+//         .max()
+//         .unwrap();
+
+//     added + me
+// }
