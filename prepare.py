@@ -33,7 +33,7 @@ pub fn main() {
 }
 
 fn input() -> InputType {
-    include_str!("../input/day_{day}.txt").lines().map(parse_line)
+    include_str!("../input/day_{day}.txt").lines().map(parse_line).collect()
 }
 
 fn parse_line(line: &str) -> usize {
