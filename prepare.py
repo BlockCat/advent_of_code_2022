@@ -51,11 +51,12 @@ fn exercise_2(input: InputType) -> usize {
 
 
 if not exists(input_path):
-    print('created:' + input_path)
-    file = open(input_path, 'x')
     cookies = {'session': os.environ["COOKIE"]}
     headers = {'User-Agent': 'https://github.com/BlockCat/advent_of_code_2022 by BlockCat'}
     response = requests.get(url = url, cookies=cookies, headers=headers)
 
-    file.write(response.text)
-    file.close()
+    if not response.text.__contains__("Please don't repeatedly request this endpoint before it unlocks! The calendar countdown is synchronized with the server "):
+        print('created:' + input_path)
+        file = open(input_path, 'x')
+        file.write(response.text)
+        file.close()
