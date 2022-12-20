@@ -1,6 +1,5 @@
-use std::collections::{HashSet, VecDeque};
-
 use rayon::prelude::*;
+use std::collections::{HashSet, VecDeque};
 
 type InputType = Vec<Blueprint>;
 
@@ -75,35 +74,12 @@ fn blue_print_quality(bp: Blueprint, time: u8) -> usize {
 
     while let Some(entry) = queue.pop_back() {
         if entry.time == 0 {
-            if entry.geode > max {
-                max = entry.geode;
-                // println!("[{}] max: {}, {:?}", bp.id, max, entry);
-            }
+            max = max.max(entry.geode);
             continue;
         }
 
         if !visited.insert(entry.clone()) {
             continue;
-        }
-
-        if entry.ore >= bp.ore_robot && entry.ore_collection < max_ore_cost {
-            queue.push_back(entry.clone().tick().buy_ore(bp.ore_robot));
-        }
-
-        if entry.ore >= bp.clay_robot && entry.clay_collection < max_clay_cost {
-            queue.push_back(entry.clone().tick().buy_clay(bp.clay_robot));
-        }
-
-        if entry.ore >= bp.obsidian_robot_ore
-            && entry.clay >= bp.obsidian_robot_clay
-            && entry.obsidian_collection < max_obs_cost
-        {
-            queue.push_back(
-                entry
-                    .clone()
-                    .tick()
-                    .buy_obsidian(bp.obsidian_robot_ore, bp.obsidian_robot_clay),
-            );
         }
 
         if entry.ore >= bp.geode_robot_ore && entry.obsidian >= bp.geode_robot_obsidian {
@@ -113,21 +89,28 @@ fn blue_print_quality(bp: Blueprint, time: u8) -> usize {
                     .tick()
                     .buy_geode(bp.geode_robot_ore, bp.geode_robot_obsidian),
             );
-            // queue.push_back(QueueEntry::new(
-            //     entry.ore_collection,
-            //     entry.clay_collection,
-            //     entry.obsidian_collection,
-            //     entry.geode_collection + 1,
-            //     entry.time - 1,
-            //     entry.ore + entry.ore_collection - bp.geode_robot_ore,
-            //     entry.clay + entry.clay_collection,
-            //     entry.obsidian + entry.obsidian_collection - bp.geode_robot_obsidian,
-            //     entry.geode + entry.geode_collection,
-            // ));
-        }
+        } else if entry.ore >= bp.obsidian_robot_ore
+            && entry.clay >= bp.obsidian_robot_clay
+            && entry.obsidian_collection < max_obs_cost
+        {
+            queue.push_back(
+                entry
+                    .clone()
+                    .tick()
+                    .buy_obsidian(bp.obsidian_robot_ore, bp.obsidian_robot_clay),
+            );
+        } else {
+            if entry.ore >= bp.ore_robot && entry.ore_collection < max_ore_cost {
+                queue.push_back(entry.clone().tick().buy_ore(bp.ore_robot));
+            }
 
-        if entry.ore < bp.ore_robot || entry.ore < bp.clay_robot {
-            queue.push_back(entry.clone().tick());
+            if entry.ore >= bp.clay_robot && entry.clay_collection < max_clay_cost {
+                queue.push_back(entry.clone().tick().buy_clay(bp.clay_robot));
+            }
+
+            if entry.ore < bp.ore_robot || entry.ore < bp.clay_robot {
+                queue.push_back(entry.clone().tick());
+            }
         }
     }
 
@@ -140,6 +123,7 @@ struct QueueEntry {
     ore_collection: u16,
     clay_collection: u16,
     obsidian_collection: u16,
+
     ore: u16,
     clay: u16,
     obsidian: u16,
