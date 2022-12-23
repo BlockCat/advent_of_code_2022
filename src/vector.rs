@@ -38,6 +38,21 @@ impl<const N: usize> VectorN<N> {
     }
 }
 
+impl Vector2 {
+    pub fn rotate_right(self) -> Self {
+        Self::new([
+            self[1],
+            -self[0]
+        ])
+    }
+    pub fn rotate_left(self) -> Self {
+        Self::new([
+            -self[1],
+            self[0]
+        ])
+    }
+}
+
 impl<const N: usize> Index<usize> for VectorN<N> {
     type Output = isize;
 

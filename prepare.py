@@ -3,15 +3,16 @@ import os
 import sys
 from dotenv import load_dotenv
 from os.path import exists
+from datetime import datetime, time
 
 load_dotenv()
 
-print('Enter day:')
 year = 2022
 
 if len(sys.argv) > 1:
     day = sys.argv[1]
 else:
+    print('Enter day:')
     day = input()
 
 url = "https://adventofcode.com/{year}/day/{day}/input".format(year = year, day = day)
