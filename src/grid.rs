@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use rayon::prelude::ParallelIterator;
+
 use crate::vector::Vector2;
 
 pub trait Grid<T>
@@ -32,7 +34,6 @@ impl<T> DynamicGrid<T>
 where
     T: Clone + PartialEq + Eq + Default,
 {
-    
     pub fn from_vec(vec: Vec<Vec<T>>) -> Self {
         let mut grid = Self::default();
 
@@ -84,7 +85,7 @@ where
     pub height: usize,
 }
 
-unsafe impl Send for StaticGrid<usize> {} 
+unsafe impl Send for StaticGrid<usize> {}
 unsafe impl Sync for StaticGrid<usize> {}
 
 impl<T> Grid<T> for StaticGrid<T>
