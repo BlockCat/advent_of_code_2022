@@ -3,21 +3,19 @@ use aoc_2022::{
     grid::{Grid, StaticGrid},
     vector::{Vector2, VectorN},
 };
-use rayon::prelude::*;
 use std::{
-    borrow::{BorrowMut, Cow},
-    cell::{Cell, RefCell},
-    collections::{HashSet, VecDeque},
-    ops::DerefMut,
-    sync::atomic::AtomicU8,
+    borrow::Cow,
+    collections::{BinaryHeap, HashMap, HashSet},
 };
 
 type InputType = StaticGrid<char>;
 
+type BlizzardMap = StaticGrid<u8>;
+
 pub fn main() {
     let numbers = input();
 
-    // println!("Exercise 1: {}", exercise_1(numbers.clone()));
+    println!("Exercise 1: {}", exercise_1(numbers.clone()));
     println!("Exercise 2: {}", exercise_2(numbers));
 }
 
@@ -38,27 +36,78 @@ fn exercise_1(input: InputType) -> usize {
     let start = Vector2::new([1, 0]);
     let end = Vector2::new([input.width as isize - 2, input.height as isize - 1]);
 
-    assert_eq!(Some(&'.'), input.get_vec(&start));
-    assert_eq!(Some(&'.'), input.get_vec(&end));
-    assert_eq!(Some(&'#'), input.get_vec(&(start + Direction::East)));
-    assert_eq!(Some(&'#'), input.get_vec(&(start + Direction::West)));
-    assert_eq!(Some(&'#'), input.get_vec(&(end + Direction::East)));
-    assert_eq!(Some(&'#'), input.get_vec(&(end + Direction::West)));
+    let blizzards = extract_blizzards(input.clone());
+
+    let (steps, _) = find_path(start, blizzards, end, &input);
+    steps
+}
+
+fn exercise_2(input: InputType) -> usize {
+    let start = Vector2::new([1, 0]);
+    let end = Vector2::new([input.width as isize - 2, input.height as isize - 1]);
 
     let blizzards = extract_blizzards(input.clone());
 
-    let mut queue = VecDeque::new();
-    let mut visited = HashSet::new();
-    queue.push_front((0, start, blizzards));
+    let (steps_1, blizzards) = find_path(start, blizzards, end, &input);
+    println!("forward: {}", steps_1);
+    let (steps_2, blizzards) = find_path(end, blizzards, start, &input);
+    println!("backward: {}", steps_2);
+    let (steps_3, _) = find_path(start, blizzards, end, &input);
+    println!("forward: {}", steps_3);
 
-    while let Some((steps, pos, field)) = queue.pop_back() {
-        assert!(field.get_vec(&pos).unwrap() == &0);
-        if pos == end {
-            return steps;
+    steps_1 + steps_2 + steps_3
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct OrderEntry {
+    p: u16,
+    steps: u16,
+    pos: Vector2,
+}
+
+impl Ord for OrderEntry {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.partial_cmp(other).unwrap()
+    }
+}
+
+impl PartialOrd for OrderEntry {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.p.partial_cmp(&other.p).map(|x| x.reverse())
+    }
+}
+
+fn find_path<'a>(
+    start: VectorN<2>,
+    blizzards: BlizzardMap,
+    end: VectorN<2>,
+    input: &StaticGrid<char>,
+) -> (usize, StaticGrid<u8>) {
+    let mut queue = BinaryHeap::default();
+    let mut visited = HashSet::new();
+    let mut blizzard_map = HashMap::new();
+    blizzard_map.insert(0u16, blizzards);
+    queue.push(OrderEntry {
+        p: Vector2::manhattan(&start, &end) as u16,
+        steps: 0,
+        pos: start,
+    });
+
+    while let Some(OrderEntry { p: _, steps, pos }) = queue.pop() {
+        if !visited.insert((pos, steps)) {
+            continue;
         }
 
-        if !visited.insert((pos, field.clone())) {
-            continue;
+        let field = if let Some(field) = blizzard_map.get(&steps) {
+            field
+        } else {
+            let field = blizzard_step(blizzard_map.get(&(steps - 1)).unwrap());
+            blizzard_map.insert(steps, field);
+            blizzard_map.get(&steps).unwrap()
+        };
+
+        if pos == end {
+            return (steps as usize, blizzard_map.remove(&steps).unwrap());
         }
 
         let field = blizzard_step(field);
@@ -68,20 +117,49 @@ fn exercise_1(input: InputType) -> usize {
             if field.get_vec(&pos).unwrap_or(&std::u8::MAX) == &0
                 && input.get_vec(&pos) != Some(&'#')
             {
-                // println!("next pos: {}, {:?}", steps + 1, pos);
-                queue.push_front((steps + 1, pos, field.clone()));
+                queue.push(OrderEntry {
+                    p: steps + 1 + Vector2::manhattan(&pos, &end) as u16,
+                    steps: steps + 1,
+                    pos,
+                });
             }
         }
-
         if field.get_vec(&pos).unwrap_or(&std::u8::MAX) == &0 {
-            queue.push_front((steps + 1, pos, field.clone()));
+            queue.push(OrderEntry {
+                p: steps + 1 + Vector2::manhattan(&pos, &end) as u16,
+                steps: steps + 1,
+                pos,
+            });
         }
     }
-
     unreachable!()
 }
 
-fn extract_blizzards(input: StaticGrid<char>) -> StaticGrid<u8> {
+fn blizzard_step(grid: &BlizzardMap) -> BlizzardMap {
+    let mut ngrid = StaticGrid::new(grid.width, grid.height);
+
+    for (pos, dirs) in grid.iter() {
+        if dirs == &0 {
+            continue;
+        }
+        for dir in ALL_DIRECTIONS {
+            if (dirs & (1 << dir as u8)) != 0 {
+                let p = pos + dir;
+                let p = match dir {
+                    Direction::North if p[1] == 0 => Vector2::new([p[0], grid.height as isize - 2]),
+                    Direction::South if p[1] == grid.height as isize - 1 => Vector2::new([p[0], 1]),
+                    Direction::East if p[0] == grid.width as isize - 1 => Vector2::new([1, p[1]]),
+                    Direction::West if p[0] == 0 => Vector2::new([grid.width as isize - 2, p[1]]),
+                    _ => p,
+                };
+                *ngrid.get_mut_vec(&p).unwrap() |= 1 << dir as u8;
+            }
+        }
+    }
+
+    ngrid
+}
+fn extract_blizzards(input: StaticGrid<char>) -> BlizzardMap {
     let blizzards = input
         .iter()
         .filter_map(|(a, b)| {
@@ -105,119 +183,4 @@ fn extract_blizzards(input: StaticGrid<char>) -> StaticGrid<u8> {
     };
 
     blizzards
-}
-
-fn blizzard_step(grid: StaticGrid<u8>) -> StaticGrid<u8> {
-    let mut ngrid = StaticGrid::new(grid.width, grid.height);
-
-    grid.iter()
-        .par_bridge()
-        // .filter(|x| x.1 > &0)
-        .flat_map(|(pos, dirs)| {
-            ALL_DIRECTIONS
-                .into_par_iter()
-                .filter_map(move |dir| {
-                    if (dirs & (1 << dir as u8)) != 0 {
-                        let p = pos + dir;
-                        let p = match dir {
-                            Direction::North if p[1] == 0 => {
-                                Vector2::new([p[0], grid.height as isize - 2])
-                            }
-                            Direction::South if p[1] == grid.height as isize - 1 => {
-                                Vector2::new([p[0], 1])
-                            }
-                            Direction::East if p[0] == grid.width as isize - 1 => {
-                                Vector2::new([1, p[1]])
-                            }
-                            Direction::West if p[0] == 0 => {
-                                Vector2::new([grid.width as isize - 2, p[1]])
-                            }
-                            _ => p,
-                        };
-                        Some((p, (1 << dir as u8) as u8))
-                    } else {
-                        None
-                    }
-                })
-                .collect::<Vec<_>>()
-        })
-        .collect::<Vec<_>>()
-        .into_iter()
-        .for_each(|(pos, x)| {
-            let index = pos[0] + pos[1] * ngrid.width as isize;
-            ngrid.grid[index as usize] |= x;
-        });
-
-    ngrid
-}
-
-fn exercise_2(input: InputType) -> usize {
-    let start = Vector2::new([1, 0]);
-    let end = Vector2::new([input.width as isize - 2, input.height as isize - 1]);
-
-    assert_eq!(Some(&'.'), input.get_vec(&start));
-    assert_eq!(Some(&'.'), input.get_vec(&end));
-    assert_eq!(Some(&'#'), input.get_vec(&(start + Direction::East)));
-    assert_eq!(Some(&'#'), input.get_vec(&(start + Direction::West)));
-    assert_eq!(Some(&'#'), input.get_vec(&(end + Direction::East)));
-    assert_eq!(Some(&'#'), input.get_vec(&(end + Direction::West)));
-
-    let blizzards = extract_blizzards(input.clone());
-
-    let (steps_1, blizzards) = find_path(start, blizzards, end, &input);
-    println!("forward: {}", steps_1);
-    let (steps_2, blizzards) = find_path(end, blizzards, start, &input);
-    println!("backward: {}", steps_2);
-    let (steps_3, _) = find_path(start, blizzards, end, &input);
-    println!("forward: {}", steps_3);
-
-    steps_1 + steps_2 + steps_3
-}
-
-fn find_path(
-    start: VectorN<2>,
-    blizzards: StaticGrid<u8>,
-    end: VectorN<2>,
-    input: &StaticGrid<char>,
-) -> (usize, StaticGrid<u8>) {
-    let mut queue: VecDeque<(usize, VectorN<2>, Cow<StaticGrid<u8>>)> = VecDeque::new();
-    let mut visited: HashSet<(VectorN<2>, Cow<StaticGrid<u8>>)> = HashSet::new();
-    queue.push_front((0, start, Cow::Owned(blizzards)));
-    while let Some((steps, pos, field)) = queue.pop_back() {
-        // assert!(field.get_vec(&pos).unwrap() == &0);
-        if pos == end {
-            return (steps, field.into_owned());
-        }
-
-        if !visited.insert((pos, field.clone())) {
-            continue;
-        }
-
-        let field: Cow<StaticGrid<u8>> = Cow::Owned(blizzard_step(field.into_owned()));
-
-        for dir in ALL_DIRECTIONS {
-            let pos = pos + dir;
-            if field.get_vec(&pos).unwrap_or(&std::u8::MAX) == &0
-                && input.get_vec(&pos) != Some(&'#')
-            {
-                // println!("next pos: {}, {:?}", steps + 1, pos);
-                queue.push_front((steps + 1, pos, field.clone()));
-            }
-        }
-
-        if field.get_vec(&pos).unwrap_or(&std::u8::MAX) == &0 {
-            queue.push_front((steps + 1, pos, field.clone()));
-        }
-    }
-    unreachable!()
-}
-
-fn print_blizzards(grid: &StaticGrid<u8>) {
-    for y in 1..grid.height as isize - 1 {
-        for x in 1..grid.width as isize - 1 {
-            let d = grid.get(x, y).unwrap();
-            print!("{}", d.count_ones());
-        }
-        println!();
-    }
 }
