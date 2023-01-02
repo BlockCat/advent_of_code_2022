@@ -1,11 +1,11 @@
 import requests
 import os
 import sys
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 from os.path import exists
 from datetime import datetime, time
 
-load_dotenv()
+# load_dotenv()
 
 year = 2022
 
